@@ -1,4 +1,4 @@
-use actix_web::{http::header::ContentType, test, App};
+use actix_web::{body::to_bytes, http::header::ContentType, test, App};
 use zero2prod::health_check;
 
 #[actix_web::test]
@@ -10,5 +10,9 @@ async fn test_health_check() {
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success());
+
+    let body = resp.into_body();
+    let bytes = to_bytes(body).await.unwrap();
+    assert_eq!(bytes.len(), 0, "response body is not empty");
 }
 
