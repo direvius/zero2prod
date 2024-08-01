@@ -15,4 +15,3 @@ async fn test_health_check() {
     let bytes = to_bytes(body).await.unwrap();
     assert_eq!(bytes.len(), 0, "response body is not empty");
 }
-
