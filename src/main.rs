@@ -2,12 +2,13 @@ use actix_web::{middleware::Logger, web, App, HttpServer};
 use sqlx::PgPool;
 use zero2prod::{
     configuration::read_configuration,
-    services::{health_check, subscribe},
+    services::{health_check, subscribe}, telemetry::{get_subscriber, init_logging},
 };
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init();
+    let subscriber = get_subscriber("zero2prod".into(), "info".into());
+    init_logging(subscriber);
     let configuration = read_configuration().expect("Failed to read configuration");
     let db_string = configuration.database.connection_string();
     let pool = PgPool::connect(&db_string)

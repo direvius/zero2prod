@@ -1,15 +1,26 @@
 use actix_web::{
     http::{header::ContentType, Method},
+    middleware::Logger,
     test,
     web::{Data, ServiceConfig},
     App,
 };
-use log::info;
 use maplit::hashmap;
 use sqlx::{query, Connection, Executor, PgConnection, PgPool};
 use test_log::test as test_log;
+use tracing::info;
 use uuid::Uuid;
-use zero2prod::{configuration::read_configuration, services::subscribe};
+use zero2prod::{
+    configuration::read_configuration,
+    services::subscribe,
+    telemetry::{get_subscriber, init_logging},
+};
+
+#[ctor::ctor]
+fn init() {
+    let subscriber = get_subscriber("zero2prod".into(), "info".into());
+    init_logging(subscriber);
+}
 
 async fn db_init() -> Data<PgPool> {
     let mut configuration = read_configuration().expect("Failed to read configuration");
@@ -41,7 +52,12 @@ fn config_app(pool: Data<PgPool>) -> Box<dyn Fn(&mut ServiceConfig)> {
 #[test_log(test)]
 async fn test_returns_a_200_for_valid_form_data() {
     let pool = db_init().await;
-    let app = test::init_service(App::new().configure(config_app(pool))).await;
+    let app = test::init_service(
+        App::new()
+            .configure(config_app(pool))
+            .wrap(Logger::default()),
+    )
+    .await;
     let req = test::TestRequest::default()
         .method(Method::POST)
         .uri("/subscribe")
@@ -57,7 +73,12 @@ async fn test_returns_a_200_for_valid_form_data() {
 #[test_log(test)]
 async fn test_returns_a_400_for_missing_form_data() {
     let pool = db_init().await;
-    let app = test::init_service(App::new().configure(config_app(pool))).await;
+    let app = test::init_service(
+        App::new()
+            .configure(config_app(pool))
+            .wrap(Logger::default()),
+    )
+    .await;
     let req = test::TestRequest::default()
         .method(Method::POST)
         .uri("/subscribe")
@@ -70,7 +91,12 @@ async fn test_returns_a_400_for_missing_form_data() {
 #[test_log(test)]
 async fn test_inserts_user_into_a_database() {
     let pool = db_init().await;
-    let app = test::init_service(App::new().configure(config_app(pool.clone()))).await;
+    let app = test::init_service(
+        App::new()
+            .configure(config_app(pool.clone()))
+            .wrap(Logger::default()),
+    )
+    .await;
     let req = test::TestRequest::default()
         .method(Method::POST)
         .uri("/subscribe")
