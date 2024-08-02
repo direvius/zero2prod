@@ -1,6 +1,6 @@
 use actix_web::{http::{header::ContentType, Method}, test, App};
 use maplit::hashmap;
-use zero2prod::subscribe;
+use zero2prod::services::subscribe;
 
 #[actix_web::test]
 async fn test_returns_a_200_for_valid_form_data() {

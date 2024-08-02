@@ -1,5 +1,5 @@
 use actix_web::{body::to_bytes, http::header::ContentType, test, App};
-use zero2prod::health_check;
+use zero2prod::services::health_check;
 
 #[actix_web::test]
 async fn test_health_check() {
