@@ -4,7 +4,7 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use chrono::Utc;
-use tracing::{error, info, Instrument};
+use tracing::{error, info, instrument};
 use serde::Deserialize;
 use sqlx::{query, PgPool};
 use uuid::Uuid;
@@ -16,31 +16,17 @@ struct Info {
 }
 
 #[post("/subscribe")]
-async fn subscribe(info: Form<Info>, pool: Data<PgPool>) -> impl Responder {
-    let request_id = Uuid::new_v4();
-    let request_span = tracing::info_span!(
-        "Adding a new subscriber.",
-        %request_id,
+#[instrument(
+    name = "Adding a new subscriber",
+    skip(info, pool),
+    fields(
+        request_id = %Uuid::new_v4(),
         subscriber_email = %info.email,
         subscriber_name = %info.name
-    );
-    let _request_span_guard = request_span.enter();
-
-    let query_span = tracing::info_span!("Saving new subscriber to database");
-    match query!(
-        r#"
-        insert into subscribtions
-        (id, name, email, subscribed_at)
-        values ($1, $2, $3, $4)
-        "#,
-        Uuid::new_v4(),
-        info.name,
-        info.email,
-        Utc::now(),
     )
-    .execute(pool.get_ref())
-    .instrument(query_span)
-    .await
+)]
+async fn subscribe(info: Form<Info>, pool: Data<PgPool>) -> impl Responder {
+    match insert_subscriber(&pool, &info).await
     {
         Ok(_) => {
             info!("New subscriber details have been saved");
@@ -51,4 +37,29 @@ async fn subscribe(info: Form<Info>, pool: Data<PgPool>) -> impl Responder {
             HttpResponse::InternalServerError().body(format!("failed to save subscribtion: {}", e))
         }
     }
+}
+
+#[instrument(
+    name = "Saving subscriber details in the database",
+    skip(info, pool)
+)]
+pub async fn insert_subscriber(pool: &PgPool, info: &Info) -> Result<(), sqlx::Error> {
+    query!(
+            r#"
+            insert into subscribtions
+            (id, name, email, subscribed_at)
+            values ($1, $2, $3, $4)
+            "#,
+            Uuid::new_v4(),
+            info.name,
+            info.email,
+            Utc::now(),
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| {
+            error!("Failed to save subscribtion: {:?}", e);
+            e
+        })?;
+    Ok(())
 }
