@@ -16,6 +16,10 @@ maplit = "1"
 serde = { version = "1.0", features = ["derive"] }
 env_logger = "0.11"
 config = "0.14.0"
+uuid = { version = "1.10.0", features = ["v4"] }
+chrono = { version = "0.4.38", default-features = false, features = ["clock"] }
+log = "0.4.22"
+test-log = "0.2.16"
 
 [dependencies.sqlx]
 version = "0.8"
@@ -28,3 +32,6 @@ features = [
     "chrono",
     "migrate"
 ]
+
+[dev-dependencies]
+env_logger = "0.11"
