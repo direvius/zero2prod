@@ -6,9 +6,11 @@ use actix_web::{
     App,
 };
 use maplit::hashmap;
+use secrecy::ExposeSecret;
 use sqlx::{query, Connection, Executor, PgConnection, PgPool};
 use test_log::test as test_log;
 use tracing::info;
+use tracing_actix_web::TracingLogger;
 use uuid::Uuid;
 use zero2prod::{
     configuration::read_configuration,
@@ -26,13 +28,18 @@ async fn db_init() -> Data<PgPool> {
     let mut configuration = read_configuration().expect("Failed to read configuration");
     configuration.database.db_name = Uuid::new_v4().to_string();
     info!("Creating DB: {}", configuration.database.db_name);
-    PgConnection::connect(&configuration.database.connection_string_without_db())
-        .await
-        .expect("Failed to connect to DB server")
-        .execute(format!(r#"CREATE DATABASE "{}";"#, configuration.database.db_name).as_str())
-        .await
-        .expect("Failed to create DB");
-    let pool = PgPool::connect(&configuration.database.connection_string())
+    PgConnection::connect(
+        &configuration
+            .database
+            .connection_string_without_db()
+            .expose_secret(),
+    )
+    .await
+    .expect("Failed to connect to DB server")
+    .execute(format!(r#"CREATE DATABASE "{}";"#, configuration.database.db_name).as_str())
+    .await
+    .expect("Failed to create DB");
+    let pool = PgPool::connect(&configuration.database.connection_string().expose_secret())
         .await
         .expect("Failed to open database");
     let pool = Data::new(pool);
@@ -55,7 +62,7 @@ async fn test_returns_a_200_for_valid_form_data() {
     let app = test::init_service(
         App::new()
             .configure(config_app(pool))
-            .wrap(Logger::default()),
+            .wrap(TracingLogger::default()),
     )
     .await;
     let req = test::TestRequest::default()
