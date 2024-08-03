@@ -14,7 +14,7 @@ async fn main() -> std::io::Result<()> {
     init_logging(subscriber);
     let configuration = read_configuration().expect("Failed to read configuration");
     let db_string = configuration.database.connection_string();
-    let pool = PgPool::connect(&db_string.expose_secret())
+    let pool = PgPool::connect(db_string.expose_secret())
         .await
         .expect("Failed to connect to database");
     let pool = web::Data::new(pool);
