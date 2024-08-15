@@ -711,6 +711,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum_stringify"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f8e01d3e830180fabe634cdb5efeadfa570253c6f9f689a04723674a7070331"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "env_filter"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2899,6 +2910,7 @@ dependencies = [
  "chrono",
  "config",
  "ctor",
+ "enum_stringify",
  "maplit",
  "secrecy",
  "serde",

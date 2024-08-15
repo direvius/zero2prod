@@ -13,7 +13,7 @@ use tracing::info;
 use tracing_actix_web::TracingLogger;
 use uuid::Uuid;
 use zero2prod::{
-    configuration::read_configuration,
+    configuration::get_configuration,
     services::subscribe,
     telemetry::{get_subscriber, init_logging},
 };
@@ -25,7 +25,7 @@ fn init() {
 }
 
 async fn db_init() -> Data<PgPool> {
-    let mut configuration = read_configuration().expect("Failed to read configuration");
+    let mut configuration = get_configuration().expect("Failed to read configuration");
     configuration.database.db_name = Uuid::new_v4().to_string();
     info!("Creating DB: {}", configuration.database.db_name);
     PgConnection::connect(

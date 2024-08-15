@@ -1,10 +1,11 @@
+use enum_stringify::EnumStringify;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
-    pub app_port: u16,
+    pub application: ApplicationSettings,
 }
 
 #[derive(Deserialize)]
@@ -14,6 +15,12 @@ pub struct DatabaseSettings {
     pub host: String,
     pub port: u16,
     pub db_name: String,
+}
+
+#[derive(Deserialize)]
+pub struct ApplicationSettings {
+    pub port: u16,
+    pub host: String,
 }
 
 impl DatabaseSettings {
@@ -36,11 +43,27 @@ impl DatabaseSettings {
     }
 }
 
-pub fn read_configuration() -> Result<Settings, config::ConfigError> {
+#[derive(EnumStringify)]
+#[enum_stringify(case = "lower")]
+pub enum Environment {
+    Local,
+    Production,
+}
+
+pub fn get_configuration() -> Result<Settings, config::ConfigError> {
+    let base_path = std::env::current_dir().expect("Failed to determine current directory");
+    let configuration_directory = base_path.join("configuration");
+    let environment: Environment = std::env::var("APP_ENVIRONMENT")
+        .unwrap_or_else(|_| "local".into())
+        .try_into()
+        .expect("Failed to parse APP_ENVIRONMENT");
+    let environment_filename = format!("{}.toml", environment.to_string());
     let settings = config::Config::builder()
-        .add_source(config::File::new(
-            "app_settings.toml",
-            config::FileFormat::Toml,
+        .add_source(config::File::from(
+            configuration_directory.join("base.toml"),
+        ))
+        .add_source(config::File::from(
+            configuration_directory.join(&environment_filename),
         ))
         .build()?;
     settings.try_deserialize()
