@@ -25,7 +25,10 @@ async fn main() -> std::io::Result<()> {
             .service(subscribe)
             .app_data(pool.clone())
     })
-    .bind((configuration.application.host, configuration.application.port))?
+    .bind((
+        configuration.application.host,
+        configuration.application.port,
+    ))?
     .run()
     .await
 }
