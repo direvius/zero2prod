@@ -57,7 +57,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .unwrap_or_else(|_| "local".into())
         .try_into()
         .expect("Failed to parse APP_ENVIRONMENT");
-    let environment_filename = format!("{}.toml", environment.to_string());
+    let environment_filename = format!("{}.toml", environment);
     let settings = config::Config::builder()
         .add_source(config::File::from(
             configuration_directory.join("base.toml"),
