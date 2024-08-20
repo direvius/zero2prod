@@ -4,6 +4,7 @@ port = 5432
 user = "postgres"
 password = "password"
 name = "postgres"
+ssl = false
 
 [application]
 port = 8000

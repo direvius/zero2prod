@@ -2,7 +2,7 @@ use enum_stringify::EnumStringify;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::PgConnectOptions;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
 #[derive(Deserialize)]
 pub struct Settings {
@@ -18,6 +18,7 @@ pub struct DatabaseSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub name: String,
+    pub ssl: bool,
 }
 
 #[derive(Deserialize)]
@@ -29,11 +30,17 @@ pub struct ApplicationSettings {
 
 impl DatabaseSettings {
     pub fn without_db(&self) -> PgConnectOptions {
+        let ssl_mode = if self.ssl {
+            PgSslMode::Require
+        } else {
+            PgSslMode::Prefer
+        };
         PgConnectOptions::new()
             .username(&self.user)
             .password(self.password.expose_secret())
             .host(&self.host)
             .port(self.port)
+            .ssl_mode(ssl_mode)
     }
     pub fn with_db(&self) -> PgConnectOptions {
         self.without_db().database(&self.name)
