@@ -26,8 +26,8 @@ fn init() {
 
 async fn db_init() -> Data<PgPool> {
     let mut configuration = get_configuration().expect("Failed to read configuration");
-    configuration.database.db_name = Uuid::new_v4().to_string();
-    info!("Creating DB: {}", configuration.database.db_name);
+    configuration.database.name = Uuid::new_v4().to_string();
+    info!("Creating DB: {}", configuration.database.name);
     PgConnection::connect(
         &configuration
             .database
@@ -36,7 +36,7 @@ async fn db_init() -> Data<PgPool> {
     )
     .await
     .expect("Failed to connect to DB server")
-    .execute(format!(r#"CREATE DATABASE "{}";"#, configuration.database.db_name).as_str())
+    .execute(format!(r#"CREATE DATABASE "{}";"#, configuration.database.name).as_str())
     .await
     .expect("Failed to create DB");
     let pool = PgPool::connect(&configuration.database.connection_string().expose_secret())

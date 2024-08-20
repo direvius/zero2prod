@@ -1,6 +1,7 @@
 use enum_stringify::EnumStringify;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
+use serde_aux::field_attributes::deserialize_number_from_string;
 
 #[derive(Deserialize)]
 pub struct Settings {
@@ -13,12 +14,14 @@ pub struct DatabaseSettings {
     pub user: String,
     pub password: SecretString,
     pub host: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
-    pub db_name: String,
+    pub name: String,
 }
 
 #[derive(Deserialize)]
 pub struct ApplicationSettings {
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
 }
@@ -28,7 +31,7 @@ impl DatabaseSettings {
         SecretString::new(format!(
             "{}/{}",
             self.connection_string_without_db().expose_secret(),
-            self.db_name,
+            self.name,
         ))
     }
 
@@ -65,6 +68,12 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .add_source(config::File::from(
             configuration_directory.join(&environment_filename),
         ))
+        .add_source(
+            config::Environment::with_prefix("APP")
+                .prefix_separator("_")
+                .separator("__")
+        ) 
+        .set_override_option("application.port", std::env::var("PORT").ok())?
         .build()?;
     settings.try_deserialize()
 }
