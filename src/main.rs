@@ -1,5 +1,4 @@
 use actix_web::{web, App, HttpServer};
-use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use tracing_actix_web::TracingLogger;
 use zero2prod::{
@@ -13,8 +12,7 @@ async fn main() -> std::io::Result<()> {
     let subscriber = get_subscriber("zero2prod".into(), "info".into());
     init_logging(subscriber);
     let configuration = get_configuration().expect("Failed to read configuration");
-    let db_string = configuration.database.connection_string();
-    let pool = PgPool::connect(db_string.expose_secret())
+    let pool = PgPool::connect_with(configuration.database.with_db())
         .await
         .expect("Failed to connect to database");
     let pool = web::Data::new(pool);

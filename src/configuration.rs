@@ -2,6 +2,7 @@ use enum_stringify::EnumStringify;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
+use sqlx::postgres::PgConnectOptions;
 
 #[derive(Deserialize)]
 pub struct Settings {
@@ -27,22 +28,15 @@ pub struct ApplicationSettings {
 }
 
 impl DatabaseSettings {
-    pub fn connection_string(&self) -> SecretString {
-        SecretString::new(format!(
-            "{}/{}",
-            self.connection_string_without_db().expose_secret(),
-            self.name,
-        ))
+    pub fn without_db(&self) -> PgConnectOptions {
+        PgConnectOptions::new()
+            .username(&self.user)
+            .password(self.password.expose_secret())
+            .host(&self.host)
+            .port(self.port)
     }
-
-    pub fn connection_string_without_db(&self) -> SecretString {
-        SecretString::new(format!(
-            "postgres://{}:{}@{}:{}",
-            self.user,
-            self.password.expose_secret(),
-            self.host,
-            self.port,
-        ))
+    pub fn with_db(&self) -> PgConnectOptions {
+        self.without_db().database(&self.name)
     }
 }
 
@@ -71,8 +65,8 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .add_source(
             config::Environment::with_prefix("APP")
                 .prefix_separator("_")
-                .separator("__")
-        ) 
+                .separator("__"),
+        )
         .set_override_option("application.port", std::env::var("PORT").ok())?
         .build()?;
     settings.try_deserialize()

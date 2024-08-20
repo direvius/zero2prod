@@ -6,7 +6,6 @@ use actix_web::{
     App,
 };
 use maplit::hashmap;
-use secrecy::ExposeSecret;
 use sqlx::{query, Connection, Executor, PgConnection, PgPool};
 use test_log::test as test_log;
 use tracing::info;
@@ -28,18 +27,13 @@ async fn db_init() -> Data<PgPool> {
     let mut configuration = get_configuration().expect("Failed to read configuration");
     configuration.database.name = Uuid::new_v4().to_string();
     info!("Creating DB: {}", configuration.database.name);
-    PgConnection::connect(
-        &configuration
-            .database
-            .connection_string_without_db()
-            .expose_secret(),
-    )
-    .await
-    .expect("Failed to connect to DB server")
-    .execute(format!(r#"CREATE DATABASE "{}";"#, configuration.database.name).as_str())
-    .await
-    .expect("Failed to create DB");
-    let pool = PgPool::connect(&configuration.database.connection_string().expose_secret())
+    PgConnection::connect_with(&configuration.database.without_db())
+        .await
+        .expect("Failed to connect to DB server")
+        .execute(format!(r#"CREATE DATABASE "{}";"#, configuration.database.name).as_str())
+        .await
+        .expect("Failed to create DB");
+    let pool = PgPool::connect_with(configuration.database.with_db())
         .await
         .expect("Failed to open database");
     let pool = Data::new(pool);
